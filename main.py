@@ -8,6 +8,7 @@ import paramiko
 from datetime import datetime
 import re
 import win32com.client
+import glob
 
 from modules import transform
 
@@ -121,6 +122,8 @@ def __main__(args) :
     if args.domaine=='tout':
         if args.commande=='tout':
             process_all(verbose=args.verbose)
+        elif args.commande=='supprimer':
+            delete_all(verbose=args.verbose)
         else :
             print(" - - - Erreur : commande inconnue pour le domaine tout. Veuillez sélectionner une commande existante.")
 
@@ -467,6 +470,24 @@ def process_all(verbose=True):
     # Transfert sur le serveur sftp
     transport_sftp(combined_name, combined_path, verbose=verbose)
 
+def delete_all(verbose = True):
+    print("- Suppresion en local des fichiers /fichiers_source...")
+    src_files = glob.glob('fichiers_source/*.csv')
+    for src_file in src_files:
+        os.remove(src_file)
+    print("...fichiers de /fichiers_source supprimés")
+    # Suppression des fichiers dans fichiers_cible
+    print("- Suppresion en local des fichiers /fichiers_cible...")
+    tgt_files = glob.glob('fichiers_cible/*.csv')
+    for tgt_file in tgt_files:
+        os.remove(tgt_file)
+    print("...fichiers de /fichiers_cible supprimés")
+    # Suppression des fichiers dans fichiers_consolidés
+    print("- Suppresion en local des fichiers /fichiers_consolidés...")
+    cmb_files = glob.glob('fichiers_consolidés/*.csv')
+    for cmb_file in cmb_files:
+        os.remove(cmb_file)
+    print("...fichiers de /fichiers_consolidés supprimés")
 
 # initialisation du parsing
 parser = argparse.ArgumentParser()
