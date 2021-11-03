@@ -7,7 +7,6 @@ import logging
 import paramiko
 from datetime import datetime
 import re
-import win32com.client
 import glob
 
 from modules import transform
@@ -364,28 +363,6 @@ def consolidate_files(verbose=True):
 
     return combined_name, combined_path
 
-def send_mail():
-    #Envoi d'un email
-    print("\n- -Envoi du mail de confirmation - -")
-            
-    outlook = win32com.client.Dispatch('outlook.application')
-    #appeler l'application outlookk
-
-    mail = outlook.CreateItem(0)
-    #creer un mail
-
-    mail.To = mail_to
-    mail.Subject = 'Commandes officines Test'
-    mail.Body = '''Bonjour,
-
-Nous vous informons que le fichier consolidé des commandes officines vient d'être transféré sur le serveur sftp au répertoire /commandes_officines/fichiers_cible. 
-
-Cordialement.
-    '''
-    mail.CC=mail_CC
-
-    mail.Send()
-    print("Le mail de confimation a bien été envoyé")
 
 # Transport du fichier consolidé sur le sftp
 
@@ -403,7 +380,7 @@ def transport_sftp(combined_name, combined_path, verbose=True):
     path_sftp2=os.path.join(sftp_dir2, combined_name)
     sftp.put(combined_path, path_sftp2)
     print("Le fichier " + combined_name + " a bien été transporté sur le serveur sftp")
-    #send_mail()
+
 
 
 def process_all(verbose=True):
