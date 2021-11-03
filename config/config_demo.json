@@ -1,0 +1,18 @@
+{
+    "sftp" : 
+    [
+        {
+            "server" : "ATLASANTE SFTP DEPOT",
+            "username" : "sftp_rdvvaccins_ars",
+            "password" : "****",
+            "host" : "www.atlasante.fr"
+        }
+    ],
+	"mail" :
+    [
+        {
+            "to" : "beatrice.daniel@sg.social.gouv.fr",
+            "CC" : "beatrice.daniel@sg.social.gouv.fr"
+        }
+    ]
+}
