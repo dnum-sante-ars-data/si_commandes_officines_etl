@@ -6,7 +6,8 @@ import logging
 import paramiko
 from datetime import datetime
 import re
-import win32com.client
+import subprocess
+import wget
 
 # Module pour les fonctions liées aux SFTPs
 
@@ -31,6 +32,20 @@ def import_files(sftp, filename, verbose=True, local_dir='fichiers_source/', sft
     if os.path.exists(local_path)==True:
         os.remove(local_path)
     sftp.get(path_sftp, local_path)
+
+# Importation des fichiers version wget pour VM CENTOS
+
+def wget_files(filename, username="username", password="password", sftp_host="host", verbose=True, local_dir='fichiers_source/', sftp_dir='commandes_officines/fichiers_source/'):
+    #dst = "/"
+    dst = local_dir
+    username = username
+    password = password
+    sftp_host = sftp_host
+    #filepath = "doctolib/2021-11-03-doctolib-rdv.csv"
+    filepath = sftp_dir + filename
+    cmd = 'wget --directory-prefix='+dst+' --user="'+username+'" --password="'+password+'"  ftp://'+sftp_host+'/'+filepath+' --progress=bar'
+    subprocess.run(cmd, shell=True)
+    print(' - Commande "'+cmd+'" exécutée')
 
 # Transport du fichier consolidé sur le sftp
 

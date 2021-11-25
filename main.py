@@ -7,7 +7,6 @@ import logging
 import paramiko
 import datetime
 import re
-import win32com.client
 import warnings
 
 from modules import transform
@@ -128,7 +127,10 @@ def __main__(args) :
                 recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
                 # import des fichiers un par un
                 for fn in recent_files_domaine :
-                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    # fonction pysftp :
+                    #utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    # fonction à utiliser pour la VM CENTOS : 
+                    utils.sftp.wget_files(fn, username=username, password=password, sftp_host=host, verbose=args.verbose)
                     print(" - - Import de " + fn + " terminé.")
                     logging.debug("Import de " + fn + " terminé.")
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
@@ -164,7 +166,8 @@ def __main__(args) :
         if combined_name :
             mail.generate_html(combined_name, semaine, L_config_domaines)
             print(" - Les fichiers cibles ont été consolidés")
-            utils.sftp.transport_sftp(combined_name, verbose=args.verbose)
+            with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
+                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
             print(" - Les fichiers cibles ont été publiés")
     # applique toutes les étapes en un seul run
     elif args.commande == 'tout':
@@ -176,7 +179,10 @@ def __main__(args) :
                 recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
                 # import des fichiers un par un
                 for fn in recent_files_domaine :
-                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    # fonction pysftp :
+                    #utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    # fonction optimisée pour VM CENTOS :
+                    utils.sftp.wget_files(fn, username=username, password=password, sftp_host=host, verbose=args.verbose)
                     print(" - - Import de " + fn + " terminé.")
                     logging.debug("Import de " + fn + " terminé.")
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
@@ -189,7 +195,8 @@ def __main__(args) :
             if combined_name :
                 mail.generate_html(combined_name, semaine, L_config_domaines)
                 print(" - Les fichiers cibles ont été consolidés")
-                utils.sftp.transport_sftp(combined_name, verbose=args.verbose)
+            with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
+                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
                 print(" - Les fichiers cibles ont été publiés")
     elif args.commande == 'envoi_mail':
         # seul le domaine 'tout' est accepté pour cette commande
