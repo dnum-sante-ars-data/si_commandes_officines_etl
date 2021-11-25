@@ -5,14 +5,103 @@
             "server" : "ATLASANTE SFTP DEPOT",
             "username" : "sftp_rdvvaccins_ars",
             "password" : "****",
-            "host" : "www.atlasante.fr"
+            "host" : "www.atlasante.fr",
+            "port" : 2222
         }
     ],
 	"mail" :
+    {
+        "expediteur" : "vdsr1995@gmail.com",
+        "destinataires" :["vianney.drescher@accenture.com", 
+            "j.pathmanathan@accenture.com", 
+            "marine.dussaussois@accenture.com",
+            "jeremy.bouhi@accenture.com"],
+        "password" : "****",
+        "server_url" : "****",
+        "server_port" : "465"
+    },
+    "nomenclature_fichier":
     [
         {
-            "to" : "beatrice.daniel@sg.social.gouv.fr",
-            "CC" : "beatrice.daniel@sg.social.gouv.fr"
+            "prefixe" : "PHARMA-SI_Commandes_officine_COVID_",
+            "domaine" : "Pharmacien",
+            "denombrement" : "finess"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_medecins_COVID_",
+            "domaine" : "Medecin",
+            "denombrement" : "rpps"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_dentistes_COVID_",
+            "domaine" : "Dentiste",
+            "denombrement" : "rpps"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_ehpads_COVID_",
+            "domaine" : "EHPAD",
+            "denombrement" : "finessEtablissement"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_residences_autonomies_COVID_",
+            "domaine" : "Residence Autonome",
+            "denombrement" : "finessEtablissement"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_lbms_COVID_",
+            "domaine" : "LBMS",
+            "denombrement" : "finessEtablissement"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_secs_COVID_",
+            "domaine" : "Structure exco",
+            "denombrement" : "finessEtablissement"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_ssus_COVID_",
+            "domaine" : "SSUS",
+            "denombrement" : "finessEtablissement"
         }
-    ]
+    ],
+    "adjust_fichier": {
+        "rename" : {
+            "FINESS Géo. Officine" : "finess",
+            "Libellé Officine": "labelOfficine",
+            "Code Postal Officine": "codePostalOfficine",
+            "Code CIP Officine": "codeCIPOfficine",
+            "Nom Etablissement": "nomEtablissement",
+            "Nom EHPAD" : "nomEtablissement",
+            "Nom Laboratoire de biologie médicale": "nomEtablissement",
+            "Nom Résidence autonomie": "nomEtablissement",
+            "Nom Structure à exercice coordonné": "nomEtablissement",
+            "Nom Service de Santé Universitaire": "nomEtablissement",
+            "FINESS Géo. Etablissement": "finessEtablissement",
+            "FINESS Géo. EHPAD": "finessEtablissement",
+            "FINESS Géo. Résidence autonomie": "finessEtablissement",
+            "FINESS Géo. Laboratoire de biologie médicale": "finessEtablissement",
+            "FINESS Géo. Structure à exercice coordonné": "finessEtablissement",
+            "UAI Service de Santé Universitaire": "finessEtablissement",
+            "N° RPPS": "rpps",
+            "RPPS": "rpps",
+            "Date de création de la commande": "dateCreationCommande",
+            "Date de dernière modification de la commande": "dateEditionCommande",
+            "Date de dernière modification" : "dateEditionCommande",
+            "Date de livraison à l'officine": "dateLivraisonOfficine",
+            "Email Officine": "mailOfficine"
+        },
+        "delete" : [
+            "ID UNIQUE",
+            "ID TECHNIQUE",
+            "NOM PS",
+            "Nom PS",
+            "Prénom PS",
+            "Spécialité PS",
+            "Type PS",
+            "Téléphone Fixe Officine",
+            "Téléphone Portable Officine",
+            "Spécialité PS",
+            "code UCD",
+            "Académie"
+        ]
+    }
 }
