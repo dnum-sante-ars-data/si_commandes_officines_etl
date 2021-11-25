@@ -5,485 +5,211 @@ import pysftp
 import json
 import logging
 import paramiko
-from datetime import datetime
+import datetime
 import re
-import glob
+import win32com.client
+import warnings
 
 from modules import transform
+from modules import mail
+from modules import utils
+from modules.mail.mail import send_mail
 
+# suppression des futurs warning
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
-def __main__(args) :
-    # mettre le verbose dans chaque fonction
-    if args.domaine not in ["covid", "dentiste", "ehpad","med", "ra", "sf", "lbm", "consolide_publie", "tout"] :
-        print(" - - - Erreur : Domaine inconnu. Veuillez sélectionner un domaine existant.")
-        return
-    if args.verbose :
-        print(" - - Verbose active")
-    # domaine covid
-    if args.domaine=='covid':
-        if args.commande=='import':
-            for fn_covid in recent_files_covid:
-                import_files(fn_covid, verbose=args.verbose)
-            print("Les fichiers covid ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_covid in recent_files_covid:
-                transformed_file=transform_files(fn_covid, verbose=args.verbose)
-                export_files(transformed_file, fn_covid, verbose=args.verbose)
-            print("Traitement des fichiers covid terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine covid. Veuillez sélectionner une commande existante.")
-    # domaine dentiste
-    if args.domaine=='dentiste':
-        if args.commande=='import':
-            for fn_dentiste in recent_files_dentiste:
-                import_files(fn_dentiste, verbose=args.verbose)
-            print("Les fichiers dentiste ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_dentiste in recent_files_dentiste:
-                transformed_file=transform_files(fn_dentiste, verbose=args.verbose)
-                export_files(transformed_file, fn_dentiste, verbose=args.verbose)
-            print("Traitement des fichiers dentiste terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine dentiste. Veuillez sélectionner une commande existante.")
-    # domaine ehpad
-    if args.domaine=='ehpad':
-        if args.commande=='import':
-            for fn_ehpad in recent_files_ehpad:
-                import_files(fn_ehpad, verbose=args.verbose)
-            print("Les fichiers ehpad ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_ehpad in recent_files_ehpad:
-                transformed_file=transform_files(fn_ehpad, verbose=args.verbose)
-                export_files(transformed_file, fn_ehpad, verbose=args.verbose)
-            print("Traitement des fichiers ehpad terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine ehpad. Veuillez sélectionner une commande existante.")
-    # domaine laboratoire de biologie médicale
-    if args.domaine=='lbm':
-        if args.commande=='import':
-            for fn_lbm in recent_files_lbm:
-                import_files(fn_lbm, verbose=args.verbose)
-            print("Les fichiers lbm ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_lbm in recent_files_lbm:
-                transformed_file=transform_files(fn_lbm, verbose=args.verbose)
-                export_files(transformed_file, fn_lbm, verbose=args.verbose)
-            print("Traitement des fichiers lbm terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine lbm. Veuillez sélectionner une commande existante.")
-    # domaine médecin
-    if args.domaine=='med':
-        if args.commande=='import':
-            for fn_med in recent_files_med:
-                import_files(fn_med, verbose=args.verbose)
-            print("Les fichiers médecin ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_med in recent_files_med:
-                transformed_file=transform_files(fn_med, verbose=args.verbose)
-                export_files(transformed_file, fn_med, verbose=args.verbose)
-            print("Traitement des fichiers médecin terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine lbm. Veuillez sélectionner une commande existante.")
-    # domaine résidence autonome
-    if args.domaine=='ra':
-        if args.commande=='import':
-            for fn_ra in recent_files_ra:
-                import_files(fn_ra, verbose=args.verbose)
-            print("Les fichiers résidence autonome ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_ra in recent_files_ra:
-                transformed_file=transform_files(fn_ra, verbose=args.verbose)
-                export_files(transformed_file, fn_ra, verbose=args.verbose)
-            print("Traitement des fichiers résidence autonome terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine ra. Veuillez sélectionner une commande existante.")
-    # domaine sage-femme
-    if args.domaine=='sf':
-        if args.commande=='import':
-            for fn_sf in recent_files_sf:
-                import_files(fn_sf, verbose=args.verbose)
-            print("Les fichiers sage-femme ont bien été importés")
-        elif args.commande=='transform_export':
-            for fn_sf in recent_files_sf:
-                transformed_file=transform_files(fn_sf, verbose=args.verbose)
-                export_files(transformed_file, fn_sf, verbose=args.verbose)
-            print("Traitement des fichiers sage-femme terminé")
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine lbm. Veuillez sélectionner une commande existante.")
-    # domaine consolidation
-    if args.domaine=='consolide_publie':
-        if args.commande=='sftp':
-            combined_name, combined_path = consolidate_files(verbose=args.verbose)
-            transport_sftp(combined_name, combined_path, verbose=args.verbose)
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine consolide_publie. Veuillez sélectionner une commande existante.")
-    # domaine tout
-    if args.domaine=='tout':
-        if args.commande=='tout':
-            process_all(verbose=args.verbose)
-        elif args.commande=='supprimer':
-            delete_all(verbose=args.verbose)
-        else :
-            print(" - - - Erreur : commande inconnue pour le domaine tout. Veuillez sélectionner une commande existante.")
+# chargement de la configuration
 
 def read_config_sftp(path_in, server_name) :
-    with open(path_in) as f:
+    with open(path_in, encoding="utf-8") as f:
         dict_ret = json.load(f)
     L_ret = dict_ret["sftp"]
     server_config = {}
     for server in L_ret :
         if server["server"] == server_name :
             server_config = server.copy()
-    logging.info("Lecture config SFTP " + path_in + ".")
+    logging.info(" - Lecture config SFTP " + path_in + ".")
     return server_config
+
+def read_config_nomenclature(path_in) :
+    with open(path_in, encoding="utf-8") as f:
+        dict_ret = json.load(f)
+    nomenclature_fichier = dict_ret["nomenclature_fichier"]
+    logging.info(" - Lecture config nomenclature " + path_in + ".")
+    return nomenclature_fichier
+
+def read_config_adjust_fichier(path_in) :
+    with open(path_in, encoding="utf-8") as f:
+        dict_ret = json.load(f)
+    nomenclature_fichier = dict_ret["adjust_fichier"]
+    logging.info(" - Lecture configuration ajustement des fichiers " + path_in + ".")
+    return nomenclature_fichier
+
+def read_config_mail(path_in) :
+    with open(path_in, encoding="utf-8") as f:
+        dict_ret = json.load(f)
+    config_mail = dict_ret["mail"]
+    logging.info(" - Lecture configuration envoi des mails " + path_in + ".")
+    return config_mail
 
 config="config/config.json"
 server_in_sftp = read_config_sftp(config,"ATLASANTE SFTP DEPOT")
+nomenclature_domaine = read_config_nomenclature(config)
+ajustements = read_config_adjust_fichier(config)
+config_mail = read_config_mail(config)
 
 host = server_in_sftp["host"]
 username = server_in_sftp["username"]
 password = server_in_sftp["password"]
+port = server_in_sftp["port"]
 cnopts = pysftp.CnOpts()
-cnopts.hostkeys = None 
+cnopts.hostkeys = None
 
-def read_config_mail(path_in) :
-    with open(path_in) as f:
-        dict_ret = json.load(f)
-    L_ret = dict_ret["mail"]
-    mail_config={}
-    for mail in L_ret :
-        mail_config = mail.copy()
-    return mail_config
-
-mail_config=read_config_mail(config)
-
-mail_to=mail_config["to"]
-mail_CC=mail_config["CC"]
-
-# Connexion au sftp
-sftp = pysftp.Connection(host=host, username=username, password=password, port=2222, cnopts=cnopts) 
-
-# Récupération des noms des fichiers sources
-sftp.cwd('commandes_officines/fichiers_source/')
-directory_structure = sftp.listdir_attr()
-sftp.close()
-filenames = [attr.filename for attr in directory_structure]
-
-# Cherche la date dans le nom du fichier
-date_pattern = re.compile(r'(?P<date>\d{12})')
-def get_date(filename):
-    matched = date_pattern.search(filename)
-    if not matched:
-        return None
-    return datetime.strptime(matched.groups('date')[0], "%Y%m%d%H%M")
-
-#Récupère le fichier le plus recent de la semaine
-def get_recent_files(filenames):
-    weeks=[]
-    recent_files=[]
-    for file in filenames:
-        date=get_date(file)
-        week=date.isocalendar()[1]
-        if week not in weeks:
-            if len(weeks)!=0:
-                recent_files.append(recent_file)
-            weeks.append(week)
-        recent_file=file
-    recent_files.append(recent_file)
-    return recent_files
-
-# Récupération des fichiers covid les plus récents pour chaque semaine
-
-def get_recent_files_covid():
-    filenames_covid=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_COVID_"):
-            filenames_covid.append(file)
-    recent_files_covid=get_recent_files(filenames_covid)
-    return recent_files_covid
-    
-recent_files_covid = get_recent_files_covid()
-
-# Récupération des fichiers dentiste les plus récents pour chaque semaine
-  
-def get_recent_files_dentiste():
-    filenames_dentiste=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_dentistes_COVID_"):
-            filenames_dentiste.append(file)
-    recent_files_dentiste=get_recent_files(filenames_dentiste)
-    return recent_files_dentiste
-
-recent_files_dentiste = get_recent_files_dentiste()
-
-# Récupération des fichiers EHPAD les plus récents pour chaque semaine
-  
-def get_recent_files_ehpad():
-    filenames_ehpad=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_ehpads_COVID_"):
-            filenames_ehpad.append(file)
-    recent_files_ehpad=get_recent_files(filenames_ehpad)
-    return recent_files_ehpad
-
-recent_files_ehpad = get_recent_files_ehpad()
-
-# Récupération des fichiers médecins les plus récents pour chaque semaine
-  
-def get_recent_files_med():
-    filenames_med=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_medecins_COVID_"):
-            filenames_med.append(file)
-    recent_files_med=get_recent_files(filenames_med)
-    return recent_files_med
-
-recent_files_med = get_recent_files_med()
-
-# Récupération des fichiers résidences autonomes les plus récents pour chaque semaine
-  
-def get_recent_files_ra():
-    filenames_ra=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_residences_autonomies_COVID_"):
-            filenames_ra.append(file)
-    recent_files_ra=get_recent_files(filenames_ra)
-    return recent_files_ra
-
-recent_files_ra = get_recent_files_ra()
-
-# Récupération des fichiers sage-femmes les plus récents pour chaque semaine
-  
-def get_recent_files_sf():
-    filenames_sf=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_sages_femmes_COVID_"):
-            filenames_sf.append(file)
-    recent_files_sf=get_recent_files(filenames_sf)
-    return recent_files_sf
-
-recent_files_sf = get_recent_files_sf()
-
-# Récupération des fichiers laboratoire de biologie médicale les plus récents pour chaque semaine
-  
-def get_recent_files_lbm():
-    filenames_lbm=[]
-    for file in filenames:
-        if file.startswith("PHARMA-SI_Commandes_officine_lbms_COVID_"):
-            filenames_lbm.append(file)
-    recent_files_lbm=get_recent_files(filenames_lbm)
-    return recent_files_lbm
-
-recent_files_lbm = get_recent_files_lbm()
-
-# Importation des fichiers 
-
-def import_files(filename, verbose=True):
-
-    # Connexion au sftp
-    sftp = pysftp.Connection(host=host, username=username, password=password, port=2222, cnopts=cnopts) 
-    # Téléchargement des fichiers source en local depuis sftp
-    local_dir='fichiers_source/'
-    local_path=os.path.join(local_dir, filename)
-    sftp_dir='commandes_officines/fichiers_source/'
-    path_sftp=os.path.join(sftp_dir, filename)
-    # Si le fichier existe déjà, le supprimer
-    if os.path.exists(local_path)==True:
-        os.remove(local_path)
-    sftp.get(path_sftp, local_path)
-    sftp.close()
-    
-
-# Transformation des fichiers
-
-def transform_files(filename, verbose=True):
-
-    local_dir='fichiers_source/'
-    local_path=os.path.join(local_dir, filename)
-    pharma=pd.read_csv(local_path, dtype={"FINESS Géo. Officine": object}, delimiter = ';', encoding='latin-1', error_bad_lines=False)
-    transform.adjust(pharma)
-    df2=transform.pivot(pharma)
-    df3=transform.mise_en_forme(df2, filename)
-    return df3
-
-# Exportation des fichiers cible en local
-
-def export_files(transformed_file, filename, verbose=True):
-
-    fileBaseName = os.path.basename(filename).split('.')[0]
-    newFilename = fileBaseName + '_cible.csv'
-    path2='fichiers_cible'
-    new_path=os.path.join(path2, newFilename)
-    transformed_file.to_csv(new_path, sep=';', index=False, encoding='latin-1')
-
-# Consolidations des fichiers :
-
-def consolidate_files(verbose=True):
-    
-    print("\n- - Consolidation des fichiers - -")
-    # Création du fichier consolidé en local
-    path2='fichiers_cible'
-    files = os.listdir('fichiers_cible')
-    # On ne prend que les fichiers csv
-    csv_files=[]
-    for file in files:
-        extension=file.split('.')[1]
-        if extension=='csv':
-            csv_files.append(file)
-    combined_csv = pd.concat([pd.read_csv(os.path.join(path2, f), dtype={"FINESS Géo. Officine": object, "Rang vaccinal prévu": object, "Nb flacons commandés": int}, delimiter = ';', encoding='latin-1', error_bad_lines=False) for f in csv_files ])
-    combined_csv.drop('ID UNIQUE', axis=1, inplace=True) 
-    combined_csv.drop('Nom PS', axis=1, inplace=True) 
-    combined_csv.drop('Prénom PS', axis=1, inplace=True) 
-    combined_csv.drop('Téléphone Fixe Officine', axis=1, inplace=True) 
-    combined_csv.drop('Téléphone Portable Officine', axis=1, inplace=True) 
-    combined_csv.drop('Spécialité PS', axis=1, inplace=True) 
-    combined_csv.rename(columns={"FINESS Géo. Officine": "finess"}, inplace=True)
-    combined_csv.rename(columns={"Libellé Officine": "labelOfficine"}, inplace=True)
-    combined_csv.rename(columns={"Code Postal Officine": "codePostalOfficine"}, inplace=True)
-    combined_csv.rename(columns={"Code CIP Officine": "codeCIPOfficine"}, inplace=True)
-    combined_csv.rename(columns={"Nom Etablissement": "nomEtablissement"}, inplace=True)
-    combined_csv.rename(columns={"FINESS Géo. Etablissement": "finessEtablissement"}, inplace=True)
-    combined_csv.rename(columns={"N° RPPS": "rpps"}, inplace=True)
-    combined_csv.rename(columns={"Type PS": "typePS"}, inplace=True)
-    combined_csv.rename(columns={"Rang vaccinal prévu": "rangVaccinalPrevu"}, inplace=True)
-    combined_csv.rename(columns={"Label UCD": "vaccin"}, inplace=True)
-    combined_csv.rename(columns={"Modalite commande": "modaliteCommande"}, inplace=True)
-    combined_csv.rename(columns={"Date de création de la commande": "dateCreationCommande"}, inplace=True)
-    combined_csv.rename(columns={"Date de dernière modification de la commande": "dateEditionCommande"}, inplace=True)
-    combined_csv.rename(columns={"Date de livraison à l'officine": "dateLivraisonOfficine"}, inplace=True)
-    combined_csv.rename(columns={"Nombre article": "nombreArticle"}, inplace=True)
-    combined_csv.rename(columns={"Email Officine": "mailOfficine"}, inplace=True)
-
-    # Exportation du fichier consolidé nommé avec la date du jour
-    date = datetime.now().strftime("%Y_%m_%d-%I:%M:%S_%p")
-    combined_name= 'PHARMA-SI_Commandes_officine_consolide_' + date.split('-')[0] +'.csv'
-    combined_path=os.path.join('fichiers_consolidés', combined_name)
-    combined_csv.to_csv(combined_path, sep=';', index=False, encoding='latin-1')
-    print("Consolidation des fichiers terminé")
-
-    return combined_name, combined_path
-
-
-# Transport du fichier consolidé sur le sftp
-
-def transport_sftp(combined_name, combined_path, verbose=True):
-
-    print("\n- - Transport du fichier consolidé sur le sftp - -")
-    sftp = pysftp.Connection(host=host, username=username, password=password, port=2222, cnopts=cnopts) 
-    sftp_dir2 = 'commandes_officines/fichiers_cible/'
-    # Supression des anciens fichiers consolidés
-    anciens_fichiers_consolides = sftp.listdir(sftp_dir2)
-    for file in anciens_fichiers_consolides:
-        sftp.remove(os.path.join(sftp_dir2,file))
-    print("Les anciens fichiers consolidés ont été supprimés du serveur sftp") 
-    # Transport du fichier
-    path_sftp2=os.path.join(sftp_dir2, combined_name)
-    sftp.put(combined_path, path_sftp2)
-    print("Le fichier " + combined_name + " a bien été transporté sur le serveur sftp")
-
-
-
-def process_all(verbose=True):
-
-    # Traitement des fichiers covid
-    print("\n- - Traitement des fichiers covid - -")
-    for fn_covid in recent_files_covid:
-        import_files(fn_covid, verbose=verbose)
-        transformed_file=transform_files(fn_covid, verbose=verbose)
-        export_files(transformed_file, fn_covid, verbose=verbose)
-    print("Traitement des fichiers covid terminé")
-
-    print("\n- - Traitement des fichiers dentiste - -")
-    # Traitement des fichiers dentistes
-    for fn_dentiste in recent_files_dentiste:
-        import_files(fn_dentiste, verbose=verbose)
-        transformed_file=transform_files(fn_dentiste, verbose=verbose)
-        export_files(transformed_file, fn_dentiste, verbose=verbose)
-    print("Traitement des fichiers dentiste terminé")
-    
-    # Traitement des fichiers ehpad
-    print("\n- - Traitement des fichiers ehpad - -")
-    for fn_ehpad in recent_files_ehpad:
-        import_files(fn_ehpad, verbose=verbose)
-        transformed_file=transform_files(fn_ehpad, verbose=verbose)
-        export_files(transformed_file, fn_ehpad, verbose=verbose)
-    print("Traitement des fichiers ehpad terminé")
-
-    # Traitement des fichiers laboratoire de biologie médicale
-    print("\n- - Traitement des fichiers lbm - -")
-    for fn_lbm in recent_files_lbm:
-        import_files(fn_lbm, verbose=verbose)
-        transformed_file=transform_files(fn_lbm, verbose=verbose)
-        export_files(transformed_file, fn_lbm, verbose=verbose)
-    print("Traitement des fichiers lbm terminé")
-
-    # Traitement des fichiers médecins
-    print("\n- - Traitement des fichiers médecins - -")
-    for fn_med in recent_files_med:
-        import_files(fn_med, verbose=verbose)
-        transformed_file=transform_files(fn_med, verbose=verbose)
-        export_files(transformed_file, fn_med, verbose=verbose)
-    print("Traitement des fichiers médecins terminé")
-
-    # Traitement des fichiers résidences autonomes
-    print("\n- - Traitement des fichiers autonomes - -")
-    for fn_ra in recent_files_ra:
-        import_files(fn_ra, verbose=verbose)
-        transformed_file=transform_files(fn_ra, verbose=verbose)
-        export_files(transformed_file, fn_ra, verbose=verbose)
-    print("Traitement des fichiers autonomes terminé")
-
-    # Traitement des fichiers sage-femmes
-    print("\n- - Traitement des fichiers sage-femme - -")
-    for fn_sf in recent_files_sf:
-        import_files(fn_sf, verbose=verbose)
-        transformed_file=transform_files(fn_sf, verbose=verbose)
-        export_files(transformed_file, fn_sf, verbose=verbose)
-    print("Traitement des fichiers sage-femme terminé")
-
-    # Consolidation
-    combined_name, combined_path = consolidate_files(verbose=verbose)
-
-    # Transfert sur le serveur sftp
-    transport_sftp(combined_name, combined_path, verbose=verbose)
-
-def delete_all(verbose = True):
-    print("- Suppresion en local des fichiers /fichiers_source...")
-    src_files = glob.glob('fichiers_source/*.csv')
-    for src_file in src_files:
-        os.remove(src_file)
-    print("...fichiers de /fichiers_source supprimés")
-    # Suppression des fichiers dans fichiers_cible
-    print("- Suppresion en local des fichiers /fichiers_cible...")
-    tgt_files = glob.glob('fichiers_cible/*.csv')
-    for tgt_file in tgt_files:
-        os.remove(tgt_file)
-    print("...fichiers de /fichiers_cible supprimés")
-    # Suppression des fichiers dans fichiers_consolidés
-    print("- Suppresion en local des fichiers /fichiers_consolidés...")
-    cmb_files = glob.glob('fichiers_consolidés/*.csv')
-    for cmb_file in cmb_files:
-        os.remove(cmb_file)
-    print("...fichiers de /fichiers_consolidés supprimés")
 
 # initialisation du parsing
 parser = argparse.ArgumentParser()
 parser.add_argument("domaine", type=str, help="Domaines disponibles : covid, dentiste, ehpad, lbm, med, ra, sf, consolidation_publication, tout")
 parser.add_argument("commande", type=str, help="Commande à exécuter")
 parser.add_argument("-v", "--verbose", help="affiche le debuggage", type=bool)
+parser.add_argument("-d", "--date", help="Configure la date a prendre en compte pour le mail a envoye", type=str)
 args = parser.parse_args()
 
-date = datetime.now().strftime("%Y%m%d_%I%M%S%p")
-log_filename='log/log_debug_' + date +'.log'
+# date et semaine en cours par defaut
+date = datetime.date.today()
+semaine = datetime.datetime.strftime(
+    datetime.datetime.today() - datetime.timedelta(days=date.weekday()),
+    "%Y-%m-%d")
 
 #logging
+log_filename='log/log_' + datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d_%H%M") +'.log'
 logging.basicConfig(level=logging.DEBUG,
                     filename=log_filename,
                     filemode="a",
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     force=True)
 
-logging.debug('This is a debug message')
+# utilitaire
+
+def __main__(args) :
+    # mettre le verbose dans chaque fonction
+
+
+    # gestion de la semaine passée en paramètre
+    global date
+    global semaine
+    
+    if args.date :
+        try :
+            date = datetime.datetime.strptime(args.date, "%Y-%m-%d")
+        except :
+            print(" - Erreur : parametre date saisi invalide.")
+        semaine = datetime.datetime.strftime(date - datetime.timedelta(days=date.weekday()),"%Y-%m-%d")
+
+    print(" - Semaine sélectionnée : " + semaine + ".")
+    # gestion du domaine passé en paramètre
+    allowed_domaine = [ elem["domaine"] for elem in nomenclature_domaine if "domaine" in elem.keys()]
+    if args.domaine == 'tout' :
+        L_config_domaines = nomenclature_domaine.copy()
+        print(" - - Tous les domaines sont pris en compte.")
+    elif args.domaine not in allowed_domaine :
+        print(" - Erreur : Domaine inconnu. Veuillez sélectionner un domaine existant.")
+        return
+    else :
+        print(" - - Le domaine " + str(args.domaine) + " est pris en compte.")
+        L_config_domaines = [elem for elem in nomenclature_domaine if elem["domaine"] == args.domaine]
+    # gestion de la commande passée en paramètre
+    # import des fichiers
+    if args.commande == "import" :
+        # Connexion au sftp
+        with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
+            filenames_sftp = utils.sftp.get_filenames(sftp)
+            for config_domaine in L_config_domaines :
+                recent_files_domaine = utils.utils.get_files_prefixe(filenames_sftp, config_domaine["prefixe"])
+                recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
+                # import des fichiers un par un
+                for fn in recent_files_domaine :
+                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    print(" - - Import de " + fn + " terminé.")
+                    logging.debug("Import de " + fn + " terminé.")
+                print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
+    # mise en forme et enregistrement dans le répertoire cible
+    elif args.commande=='transform_export':
+        filenames_import = transform.get_filenames_import()
+        for config_domaine in L_config_domaines :
+            files_import = utils.utils.get_files_prefixe(filenames_import, config_domaine["prefixe"])
+            files_import = utils.utils.get_recent_files(files_import)
+            # import des fichiers un par un
+            for fn in files_import :
+                transformed_file = transform.transform_files(fn, ajustements, config_domaine, verbose=args.verbose)
+                transform.export_files(transformed_file, fn, verbose=args.verbose)
+                logging.debug("Mise en forme de " + fn + ".")
+            print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été mis en forme")
+    # consolidation
+    elif args.commande =='consolide':
+        # seul le domaine 'tout' est accepté pour cette commande
+        if args.domaine != 'tout' :
+            print(" - Erreur : Domaine invalide pour la commande 'consolide'.")
+            return
+        combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
+        if combined_name : 
+            mail.generate_html(combined_name, semaine, L_config_domaines)
+            logging.debug("Consolidation des fichiers cibles en un seul fichier.")
+            print(" - Les fichiers cibles ont été consolidés")
+    elif args.commande == 'consolide_publie':
+        # seul le domaine 'tout' est accepté pour cette commande
+        if args.domaine != 'tout' :
+            print(" - - - Erreur : Domaine invalide pour la commande 'transform_export'.")
+            return
+        combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
+        if combined_name :
+            mail.generate_html(combined_name, semaine, L_config_domaines)
+            print(" - Les fichiers cibles ont été consolidés")
+            utils.sftp.transport_sftp(combined_name, verbose=args.verbose)
+            print(" - Les fichiers cibles ont été publiés")
+    # applique toutes les étapes en un seul run
+    elif args.commande == 'tout':
+        # Connexion au sftp
+        with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
+            filenames_sftp = utils.sftp.get_filenames(sftp)
+            for config_domaine in L_config_domaines :
+                recent_files_domaine = utils.utils.get_files_prefixe(filenames_sftp, config_domaine["prefixe"])
+                recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
+                # import des fichiers un par un
+                for fn in recent_files_domaine :
+                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
+                    print(" - - Import de " + fn + " terminé.")
+                    logging.debug("Import de " + fn + " terminé.")
+                print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
+                for fn in recent_files_domaine :
+                    transformed_file = transform.transform_files(fn, ajustements, config_domaine, verbose=args.verbose)
+                    transform.export_files(transformed_file, fn, verbose=args.verbose)
+                    logging.debug("Mise en forme de " + fn + ".")
+                print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été mis en forme")
+            combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
+            if combined_name :
+                mail.generate_html(combined_name, semaine, L_config_domaines)
+                print(" - Les fichiers cibles ont été consolidés")
+                utils.sftp.transport_sftp(combined_name, verbose=args.verbose)
+                print(" - Les fichiers cibles ont été publiés")
+    elif args.commande == 'envoi_mail':
+        # seul le domaine 'tout' est accepté pour cette commande
+        if args.domaine != 'tout' :
+            print(" - Erreur : Domaine invalide pour la commande 'nettoyer'.")
+            return
+        send_mail(config_mail, semaine)
+    elif args.commande == 'nettoyer':
+        # seul le domaine 'tout' est accepté pour cette commande
+        if args.domaine != 'tout' :
+            print(" - Erreur : Domaine invalide pour la commande 'nettoyer'.")
+            return
+        utils.clean_repertory('fichiers_consolidés',".csv")
+        utils.clean_repertory('fichiers_cible',".csv")
+        utils.clean_repertory('fichiers_source',".csv")
+        utils.clean_repertory('corpus_mails',".html")
+        print(" - Les répertoires import et cible ont bien été nettoyés")
+    return
+
+
 
 
 # coeur
