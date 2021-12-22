@@ -7,12 +7,14 @@ import logging
 import paramiko
 import datetime
 import re
+import win32com.client
 import warnings
 
 from modules import transform
 from modules import mail
 from modules import utils
 from modules.mail.mail import send_mail
+from modules.transform.synthese import generate_synthese
 
 # suppression des futurs warning
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -127,10 +129,7 @@ def __main__(args) :
                 recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
                 # import des fichiers un par un
                 for fn in recent_files_domaine :
-                    # fonction pysftp :
-                    #utils.sftp.import_files(sftp, fn, verbose=args.verbose)
-                    # fonction à utiliser pour la VM CENTOS : 
-                    utils.sftp.wget_files(fn, username=username, password=password, sftp_host=host, verbose=args.verbose)
+                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
                     print(" - - Import de " + fn + " terminé.")
                     logging.debug("Import de " + fn + " terminé.")
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
@@ -154,7 +153,8 @@ def __main__(args) :
             return
         combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
         if combined_name : 
-            mail.generate_html(combined_name, semaine, L_config_domaines)
+            html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
+            synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)
             logging.debug("Consolidation des fichiers cibles en un seul fichier.")
             print(" - Les fichiers cibles ont été consolidés")
     elif args.commande == 'consolide_publie':
@@ -164,11 +164,14 @@ def __main__(args) :
             return
         combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
         if combined_name :
-            mail.generate_html(combined_name, semaine, L_config_domaines)
-            print(" - Les fichiers cibles ont été consolidés")
+            html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
+            synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)
             with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
-                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
-            print(" - Les fichiers cibles ont été publiés")
+                print(" - Les fichiers cibles ont été consolidés")
+                #utils.sftp.transport_sftp(sftp, combined_name, verbose=args.verbose)
+                print(" - Les fichiers cibles ont été publiés")
+                utils.sftp.transport_sftp(sftp, synthese_file, verbose=args.verbose)
+                print(" - Les fichiers synthese ont été publiés")
     # applique toutes les étapes en un seul run
     elif args.commande == 'tout':
         # Connexion au sftp
@@ -179,10 +182,7 @@ def __main__(args) :
                 recent_files_domaine = utils.utils.get_recent_files(recent_files_domaine)
                 # import des fichiers un par un
                 for fn in recent_files_domaine :
-                    # fonction pysftp :
-                    #utils.sftp.import_files(sftp, fn, verbose=args.verbose)
-                    # fonction optimisée pour VM CENTOS :
-                    utils.sftp.wget_files(fn, username=username, password=password, sftp_host=host, verbose=args.verbose)
+                    utils.sftp.import_files(sftp, fn, verbose=args.verbose)
                     print(" - - Import de " + fn + " terminé.")
                     logging.debug("Import de " + fn + " terminé.")
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été importés")
@@ -193,11 +193,13 @@ def __main__(args) :
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été mis en forme")
             combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
             if combined_name :
-                mail.generate_html(combined_name, semaine, L_config_domaines)
+                html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
+                synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)  
                 print(" - Les fichiers cibles ont été consolidés")
-            with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
-                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
+                utils.sftp.transport_sftp(sftp, combined_name, verbose=args.verbose)
                 print(" - Les fichiers cibles ont été publiés")
+                utils.sftp.transport_sftp(sftp, synthese_file, verbose=args.verbose)
+                print(" - Les fichiers synthese ont été publiés")
     elif args.commande == 'envoi_mail':
         # seul le domaine 'tout' est accepté pour cette commande
         if args.domaine != 'tout' :
@@ -215,8 +217,6 @@ def __main__(args) :
         utils.clean_repertory('corpus_mails',".html")
         print(" - Les répertoires import et cible ont bien été nettoyés")
     return
-
-
 
 
 # coeur

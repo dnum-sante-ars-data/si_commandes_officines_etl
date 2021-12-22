@@ -171,7 +171,6 @@ def transform_files(filename, ajustements_in, config_domaine, local_dir='fichier
 # Exportation des fichiers cible en local
 
 def export_files(transformed_file, filename, verbose=True):
-
     fileBaseName = os.path.basename(filename).split('.')[0]
     newFilename = fileBaseName + '_cible.csv'
     path2='fichiers_cible'
