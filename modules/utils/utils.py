@@ -19,7 +19,8 @@ def get_date(filename):
 def get_recent_files(filenames):
     weeks=[]
     recent_files=[]
-    for file in filenames:
+    # tri par ordre anti alphabétique pour ne garder que les fichiers les plus anciens
+    for file in sorted(filenames, reverse=True):
         date=get_date(file)
         week=date.isocalendar()[1]
         if week not in weeks:

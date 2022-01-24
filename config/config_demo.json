@@ -61,6 +61,11 @@
             "prefixe" : "PHARMA-SI_Commandes_officine_ssus_COVID_",
             "domaine" : "SSUS",
             "denombrement" : "finessEtablissement"
+        },
+        {
+            "prefixe" : "PHARMA-SI_Commandes_officine_PMIS_COVID_",
+            "domaine" : "PMI",
+            "denombrement" : "finessEtablissement"
         }
     ],
     "adjust_fichier": {

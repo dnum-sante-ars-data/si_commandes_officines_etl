@@ -61,7 +61,7 @@ Consolider les fichiers et publier le fichier consolidé sur le serveur sftp :
 ```
 python main.py tout consolide_publie --verbose True
 ```
-Le fichier consolidé est transféré dans le dossier "fichiers_consolidés_" du répertoire /commandes_officines sur le serveur SFTP.
+Le fichier consolidé est transféré dans le dossier "fichiers_consolidés_" du répertoire /commandes_officines sur le serveur SFTP. Publie également une synthese du fichier sur le serveur SFTP.
 
 Pour uniquement consolider les fichiers sans les publier :
 ```
@@ -69,6 +69,8 @@ python main.py tout consolide --verbose True
 ```
 
 NB : le paramètre 'domaine' doit être obligatoirement renseigné à 'tout'
+
+Attention : cette commande ne déclenche pas d'envoi de mail
 
 #### Tout traiter 
 
