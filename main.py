@@ -165,13 +165,10 @@ def __main__(args) :
         combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
         if combined_name :
             html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
-            synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)
             with pysftp.Connection(host=host, username=username, password=password, port =port, cnopts=cnopts) as sftp:
                 print(" - Les fichiers cibles ont été consolidés")
-                #utils.sftp.transport_sftp(sftp, combined_name, verbose=args.verbose)
-                print(" - Les fichiers cibles ont été publiés")
-                utils.sftp.transport_sftp(sftp, synthese_file, verbose=args.verbose)
-                print(" - Les fichiers synthese ont été publiés")
+                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
+                print(" - Le fichier consolidé a été publié")
     # applique toutes les étapes en un seul run
     elif args.commande == 'tout':
         # Connexion au sftp
@@ -193,13 +190,10 @@ def __main__(args) :
                 print(" - - Les fichiers "  + str(config_domaine["domaine"]) + " ont bien été mis en forme")
             combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
             if combined_name :
-                html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
-                synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)  
+                html_file = mail.generate_html(combined_name, semaine, L_config_domaines) 
                 print(" - Les fichiers cibles ont été consolidés")
-                utils.sftp.transport_sftp(sftp, combined_name, verbose=args.verbose)
-                print(" - Les fichiers cibles ont été publiés")
-                utils.sftp.transport_sftp(sftp, synthese_file, verbose=args.verbose)
-                print(" - Les fichiers synthese ont été publiés")
+                utils.sftp.transport_sftp(sftp, combined_name, combined_path, verbose=args.verbose)
+                print(" - Le fichier consolidé a été publié")
     elif args.commande == 'envoi_mail':
         # seul le domaine 'tout' est accepté pour cette commande
         if args.domaine != 'tout' :
