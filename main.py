@@ -154,7 +154,6 @@ def __main__(args) :
         combined_name, combined_path = transform.consolidate_files(verbose=args.verbose)
         if combined_name : 
             html_file = mail.generate_html(combined_name, semaine, L_config_domaines)
-            synthese_file = transform.generate_synthese(combined_name, semaine, L_config_domaines)
             logging.debug("Consolidation des fichiers cibles en un seul fichier.")
             print(" - Les fichiers cibles ont été consolidés")
     elif args.commande == 'consolide_publie':

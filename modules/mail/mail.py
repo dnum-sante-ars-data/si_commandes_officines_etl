@@ -9,9 +9,7 @@ import numpy as np
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-# mise en forme de tableaux
-from tabulate import tabulate
+from pandas.io.formats.style import Styler
 
 
 # retourne l'emplacement du contenu html de l'email genere pour la semaine passée en paramètre
@@ -49,6 +47,7 @@ def agregate_modalite(df_commandes_in, semaine_in) :
     return df_ret
 
 # generation du tableau de mail
+# generation du tableau de mail
 def commandes_to_table_mail(df_in, semaine_in) :
     df_table = df_in[df_in["dateCommande"] == datetime.datetime.strptime(semaine_in, "%Y-%m-%d")]
     df_table = df_table.groupby(by=["vaccin","typePS"], as_index=False, dropna=False)["nombreArticle"].sum()
@@ -58,8 +57,18 @@ def commandes_to_table_mail(df_in, semaine_in) :
     df_table = pd.pivot_table(df_table, values = ["Nombre flacons"], 
         columns = ["Vaccin"], index = ["Catégorie PS"],
         fill_value=0)
-    df_table.columns = df_table.columns.map('-'.join).str.strip('-')
-    table_html = df_table.to_html()
+    df_table.columns = df_table.columns.get_level_values(1)
+    df_table.index.name = None
+    # mise en forme html
+
+    html = Styler(df_table, uuid_len=0, cell_ids=False)
+    html.format(thousands = " ")
+    html.set_table_styles([
+        {'selector': 'td', 'props': 'text-align: center'},
+        {'selector': 'th.row_heading','props': 'font-style: italic; text-align: left;'},
+        {'selector': 'th.col_heading','props': 'width : 100px;'}
+        ], overwrite=False)
+    table_html = html.to_html(table_attributes='border : 1px solid black;')
     return table_html
 
 # generation du corpus de texte à partir de jinja2
@@ -130,7 +139,10 @@ def calc_aug_relative_s1s2(nb_s1, nb_s2) :
 
 
 # génération du corpus de texte du mail en html
+# modification 2022-01-26 : on ne garde plus les vaccins NR
 def generate_resume_df(df_commandes, semaine_in, L_config_domaine) :
+    # filtre des vaccins NR
+    df_commandes = df_commandes[df_commandes["vaccin"] != "NR"]
     #preparation
     last_semaine = datetime.datetime.strptime(semaine_in, "%Y-%m-%d") - datetime.timedelta(7)
     table_mail = commandes_to_table_mail(df_commandes, semaine_in)
@@ -138,7 +150,7 @@ def generate_resume_df(df_commandes, semaine_in, L_config_domaine) :
     # templates utilises plus base
     
     template_header = "<h3>Résumé de l'opération de commande du {{semaine}}</h3>"
-    template_subheader = "<p> Commandes {{vaccin}} : {{nb_flacons_vaccin_cur}} flacons commandés cette semaine vs {{nb_flacons_vaccin_last}} la semaine précédente. {{aug_relative}} </p>"
+    template_subheader = "<p> Commandes {{vaccin}} : {{nb_flacons_vaccin_cur}} flacons vs {{nb_flacons_vaccin_last}} la semaine précédente ({{aug_relative}}) </p>"
     # generation de la chaine de texte
     header = Template(template_header).render({"semaine" : semaine_in})
     html_ret = "<!DOCTYPE html>\n<html>\n<body>"
