@@ -86,6 +86,8 @@ def mise_en_forme(df, name, config_domaine):
             df['vaccin'][i] = 'Pfizer Pediatrique'
         elif 'Pfizer' in df['modaliteCommande'][i]:
             df['vaccin'][i] = 'Pfizer'
+        elif 'Novavax' in df['modaliteCommande'][i]:
+            df['vaccin'][i] = 'Novavax'
         else:
              df['vaccin'][i] = 'NR'
 
